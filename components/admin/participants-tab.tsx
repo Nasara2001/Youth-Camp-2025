@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
-import { Trash2, DollarSign } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Trash2, DollarSign, Search } from "lucide-react"
 import { getCampData, deleteParticipant, updateParticipant } from "@/lib/storage"
 import type { Participant, Room, Group, Community } from "@/lib/types"
 import { toast } from "sonner"
@@ -16,6 +17,7 @@ export default function ParticipantsTab() {
   const [groups, setGroups] = useState<Group[]>([])
   const [communities, setCommunities] = useState<Community[]>([])
   const [mounted, setMounted] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     setMounted(true)
@@ -73,6 +75,15 @@ export default function ParticipantsTab() {
 
   if (!mounted) return null
 
+  // Filter participants by name or ID
+  const filteredParticipants = participants.filter((participant) => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase().trim()
+    const nameMatch = participant.name.toLowerCase().includes(query)
+    const idMatch = participant.id.toLowerCase().includes(query)
+    return nameMatch || idMatch
+  })
+
   const stats = {
     total: participants.length,
     male: participants.filter((p) => p.gender === "male").length,
@@ -127,12 +138,28 @@ export default function ParticipantsTab() {
 
       <Card className="border-0 shadow-md">
         <CardHeader className="border-b border-border">
-          <CardTitle>All Participants</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle>All Participants</CardTitle>
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Search by name or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="pt-6">
           {participants.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground text-lg">No participants registered yet</p>
+            </div>
+          ) : filteredParticipants.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No participants found matching your search</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -151,7 +178,7 @@ export default function ParticipantsTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {participants.map((participant) => (
+                  {filteredParticipants.map((participant) => (
                     <TableRow key={participant.id} className="border-border hover:bg-secondary/30">
                       <TableCell>
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
